@@ -38,6 +38,8 @@ library(Kendall)
 library(trend)
 library(stats)
 library(scales)
+library(viridis)
+library(RColorBrewer)
 
 ######################## Loading Data  #########################################
 
@@ -407,7 +409,7 @@ ggplot(RangeDF2, aes(y=factor(State, levels = c("Georgia","South Carolina", "Nor
   # scale_fill_continuous(type = "viridis")+
   labs(size = "Average CPUE \n(5 yrs bins)", y = "", x = "Year", fill = "Rolling 5 year CPUE mean") +
   theme_bw() +
-  scale_fill_brewer(type = "seq", palette = "YlGn") +
+  scale_fill_brewer(type = "seq", palette = "RdYlGn") +
   #scale_x_discrete(expand=c(0,0)) + 
   scale_y_discrete(expand=c(0,0)) +
   theme(panel.grid = element_blank())
@@ -1311,7 +1313,7 @@ RangeDF2 %>%
 
 RangeDF2 %>%
   ungroup() %>%
-  group_by(Species) %>%
+  group_by(State) %>%
   ggplot(aes(x = Year, y = PSE)) +
   geom_point()+
   facet_wrap(~State)+
@@ -1320,8 +1322,86 @@ RangeDF2 %>%
   labs(y = "Percent Standard Error")
 
 
-ggsave("PSE_V2.png", plot = last_plot(), width = 10,height = 5, units = "in", dpi = 500,
-       path = "C:/Users/RER/Documents/Masters UD/Range Shift")
+ggsave("PSE_State.png", plot = last_plot(), width = 10,height = 5, units = "in", dpi = 500,
+       path = "C:/Users/RER/Documents/Masters UD/Range Shift/FinalFigs")
+
+
+RangeDF2 %>%
+  ungroup() %>%
+  group_by(Species) %>%
+  summarize(minPSE = min(PSE, na.rm = T),
+            maxPSE = max(PSE, na.rm = T),
+            avgPSE = mean(PSE, na.rm = T))
+
+RangeDF2 %>%
+  ungroup() %>%
+  group_by(Species) %>%
+  ggplot(aes(x = Year, y = PSE)) +
+  geom_point()+
+  facet_wrap(~Species)+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  labs(y = "Percent Standard Error")
+
+
+ggsave("PSE_Species.png", plot = last_plot(), width = 10,height = 5, units = "in", dpi = 500,
+       path = "C:/Users/RER/Documents/Masters UD/Range Shift/FinalFigs")
+
+########################     Figure S3 -  Raw Data      ########################
+
+
+# Create a custom transformation function for the size scale
+custom_trans <- scales::trans_new(
+  name = "custom",
+  transform = function(x) ifelse(x > 200, 200 + (x - 200) / 3, x),  # Flatten the scale after 100
+  inverse = function(x) ifelse(x > 200, 200 + (x - 200) * 3, x)  # Inverse transformation
+)
+
+# # Create a custom color gradient function
+# custom_color_gradient <- function(value) {
+#   colors <- colorRampPalette(rev(brewer.pal(11, "Spectral")))(200)
+#   color_fun <- colorRamp(colors)
+#   return(color_fun((value - min(value)) / (max(value) - min(value))))
+# }
+
+# Cap color values at 200
+RangeDF2$color_value <- pmin(RangeDF2$CPUE, 150)
+
+ggplot(RangeDF2, aes(y=factor(State, levels = c("Georgia","South Carolina", "North Carolina",
+                                                "Virginia", "Maryland", "Delaware", "New Jersey","New York",
+                                                "Connecticut", "Rhode Island", "Massachusetts", 
+                                                "New Hampshire", "Maine")), 
+                     x= Year)) +
+  geom_point(aes(size = CPUE, color = color_value))+
+  facet_wrap(~Species) +
+  labs(size = "CPUE", y = "", x = "Year", fill = "", color = "CPUE (capped at 150)") +
+  theme_bw() +
+  #scale_color_brewer(type = "seq", palette = "RdYlGn") +
+  #scale_x_discrete(expand=c(0,0)) + 
+ # scale_y_discrete(expand=c(0,0)) +
+ # theme(panel.grid = element_blank())+
+  theme(panel.grid.major.x = element_blank(), panel.grid.minor.x = element_blank())+
+  scale_size_continuous(trans = custom_trans, 
+                        range = c(1, 10),  # Adjust the range as needed
+                        breaks = c(0, 25, 50, 75, 100, 150),
+                        labels = c("0", "25", "50", "75", "100", ">150")) +
+  scale_color_gradientn(colors = rev(brewer.pal(11, "Spectral")), 
+                        values = scales::rescale(c(0, 25, 50, 75, 100, 150)))   # Adjust color values to cap at 200
+  # scale_color_distiller(palette = "Spectral") +
+  # scale_color_gradientn(colors = rev(brewer.pal(11, "Spectral")), 
+  #                       values = scales::rescale(c(0, 25, 75, 100, 400))) # Apply Spectral color scale
+  # scale_size(breaks = seq(0,400,50)) +
+#  scale_size(breaks = c(0,25, 50,75, 100,400)) +
+  #scale_color_gradient(low = "#5A5A5B", high = "red")
+#  scale_color_viridis_c()
+  #scale_color_continuous(type = "viridis")
+  #scale_colour_gradientn(
+    colours = c('darkgreen', 'forestgreen', 'darkseagreen3', 'darkseagreen2',
+                           'indianred1', 'indianred2', 'indianred3', 'darkred')
+
+
+ggsave("SupplFigRawData.png", plot = last_plot(), width = 10,height = 8, units = "in", dpi = 750,
+       path = "C:/Users/RER/Documents/Masters UD/Range Shift/FinalFigs")
 
 ########################     Percentage of Positive Tows #######################
 
